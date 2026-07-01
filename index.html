@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>سجل حضور دورة التجويد</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background-color: #f4f7f6; }
+        .table-container { overflow-x: auto; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
+        th { background-color: #2c3e50; color: white; }
+        .camera-btn { background: #27ae60; color: white; padding: 15px 25px; cursor: pointer; border: none; border-radius: 5px; font-size: 16px; }
+        #reader { width: 100%; max-width: 400px; margin: 20px 0; }
+        #status { font-weight: bold; color: #2c3e50; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+    <h2>سجل حضور طلاب دورة التجويد</h2>
+    <div id="status">جاري تحديد الأسبوع الحالي...</div>
+    <button class="camera-btn" onclick="startScanner()">📷 مسح الباركود</button>
+    <div id="reader"></div>
+
+    <div class="table-container">
+        <table id="attendanceTable">
+            <thead>
+                <tr>
+                    <th>الرقم</th>
+                    <th>اسم الطالب</th>
+                    <th>6/7</th> <th>13/7</th> <th>20/7</th> <th>27/7</th>
+                    <th>3/8</th> <th>10/8</th> <th>17/8</th> <th>24/8</th>
+                    <th>31/8</th> <th>7/9</th> <th>14/9</th> <th>21/9</th>
+                </tr>
+            </thead>
+            <tbody id="studentBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        // ضع أسماء الـ 100 طالب هنا
+        const students = [
+            { id: 1, name: " محمد مراد" },
+            { id: 2, name: "طارق مراد " }
+            // أكمل القائمة...
+        ];
+
+        // حساب الأسبوع بناءً على تاريخ بداية الدورة 6/7/2026
+        function getWeekIndex() {
+            const startDate = new Date('2026-07-06');
+            const today = new Date();
+            const diffTime = today - startDate;
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            const week = Math.floor(diffDays / 7) + 1;
+            return week < 1 ? 1 : (week > 12 ? 12 : week);
+        }
+
+        const currentWeek = getWeekIndex();
+        document.getElementById('status').innerText = "الأسبوع الحالي: " + currentWeek;
+
+        window.onload = () => {
+            const tbody = document.getElementById('studentBody');
+            students.forEach(s => {
+                let row = `<tr><td>${s.id}</td><td>${s.name}</td>`;
+                for(let i=1; i<=12; i++) {
+                    row += `<td><input type="checkbox" id="check-${s.id}-${i}" onchange="saveData()"></td>`;
+                }
+                row += `</tr>`;
+                tbody.innerHTML += row;
+            });
+            loadData();
+        };
+
+        function startScanner() {
+            // تم حذف شرط التحقق من يوم الاثنين ليعمل الماسح في أي وقت
+            const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 200 });
+            html5QrcodeScanner.render((decodedText) => {
+                const cb = document.getElementById(`check-${decodedText}-${currentWeek}`);
+                if(cb) {
+                    cb.checked = true;
+                    saveData();
+                    alert("تم تسجيل حضور الطالب " + decodedText + " بنجاح.");
+                } else {
+                    alert("الطالب غير موجود أو انتهت الدورة!");
+                }
+                html5QrcodeScanner.clear();
+            });
+        }
+
+        function saveData() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => localStorage.setItem(cb.id, cb.checked));
+        }
+
+        function loadData() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                if (localStorage.getItem(cb.id) === 'true') cb.checked = true;
+            });
+        }
+    </script>
+</body>
+</html>
